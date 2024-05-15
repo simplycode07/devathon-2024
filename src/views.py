@@ -5,27 +5,42 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from .models import User, Files
 from . import db
 
+import base64, io
+
 routes = Blueprint("views", __name__)
 login_manager = LoginManager()
-login_manager.login_view = 'index'
+login_manager.login_view = 'viws.login'
 
 def initialize_login(app):
     login_manager.init_app(app)
+
+def get_filenames(current_user):
+    return Files.query.filter_by(user_id=current_user.id)
 
 @login_manager.user_loader
 def load_user(id):
     return User.query.get(int(id))
 
-@routes.route("/")
+@routes.route("/", methods=["GET", "POST"])
 @login_required
 def index():
-    return render_template("index.html", name=current_user.name)
+    if request.method == "POST":
+        #file = request.files['file'] 
+        file = request.form.get('file')
+
+        file_data = base64.b64decode(file)
+        
+        new_file = Files(data=file_data)
+        db.session.add(new_file)
+        db.session.commit()
+    
+    return render_template("index.html", name=current_user.name, files=get_filenames(current_user))
 
 @routes.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         email = request.form.get("email")
-        password = request.form.get("passwd")
+        password = request.form.get("password")
         
         print(f"email = {email}, passwd = {password}")
 
@@ -34,7 +49,7 @@ def login():
             if check_password_hash(user.password, password):
                 login_user(user, remember=True)
                 flash("logged in")
-                return redirect(url_for("index"), code=302)
+                return redirect(url_for("views.index"), code=302)
 
             else:
                 flash("incorrect password")
@@ -42,6 +57,11 @@ def login():
             flash("you need to signup first")
         
     return render_template("login.html")
+
+@routes.route("/logout", methods=["GET", "POST"])
+def logout():
+    logout_user()
+    return redirect(url_for("views.login"))
 
 @routes.route("/signup", methods=["GET", "POST"])
 def signup():
