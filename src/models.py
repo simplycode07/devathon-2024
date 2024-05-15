@@ -17,6 +17,9 @@ class Files(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     file_data = db.Column(db.LargeBinary)
+    filename = db.Column(db.String(300))
 
-    def __init__(self, data) -> None:
+    def __init__(self, user_id, filename, data) -> None:
         self.file_data = data
+        self.user_id = user_id
+        self.filename = filename

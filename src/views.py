@@ -1,21 +1,21 @@
-from flask import Blueprint, flash, render_template, redirect, url_for, request
+from flask import Blueprint, flash, render_template, redirect, url_for, request, send_file
 from flask_login import LoginManager, login_user, current_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from .models import User, Files
 from . import db
 
-import base64, io
+import io
 
 routes = Blueprint("views", __name__)
 login_manager = LoginManager()
-login_manager.login_view = 'viws.login'
+login_manager.login_view = 'views.login'
 
 def initialize_login(app):
     login_manager.init_app(app)
 
 def get_filenames(current_user):
-    return Files.query.filter_by(user_id=current_user.id)
+    return Files.query.filter_by(user_id=current_user.id).all()
 
 @login_manager.user_loader
 def load_user(id):
@@ -25,16 +25,47 @@ def load_user(id):
 @login_required
 def index():
     if request.method == "POST":
-        #file = request.files['file'] 
-        file = request.form.get('file')
+        file_id = request.form.get("file_id")
+        if file_id:
+            files = Files.query.all()
 
-        file_data = base64.b64decode(file)
-        
-        new_file = Files(data=file_data)
-        db.session.add(new_file)
-        db.session.commit()
+            return send_file(
+                io.BytesIO(files[int(file_id)].file_data),
+                mimetype='application/pdf'
+            )
+        return redirect(url_for("views.index"))
     
     return render_template("index.html", name=current_user.name, files=get_filenames(current_user))
+
+@routes.route("/upload", methods=["POST"])
+def upload():
+    if 'file' not in request.files:
+        flash('No file part')
+        return redirect(request.url)
+
+    file = request.files['file']
+
+    if file.filename == '':
+        flash('No selected file')
+        return redirect(request.url)
+
+    new_file = Files(user_id=current_user.id, filename=file.filename, data=file.read())
+    db.session.add(new_file)
+    db.session.commit()
+
+    return redirect(url_for("views.index"))
+
+@routes.route("/delete", methods=["POST"])
+def delete():
+    file_id = request.form.get("file_id")
+
+    if file_id:
+        file = db.session.get(Files, file_id)
+        db.session.delete(file)
+        db.session.commit()
+        print(f"deleted file {request.form.get('file_id')}")
+
+    return redirect(url_for("views.index"))
 
 @routes.route("/login", methods=["GET", "POST"])
 def login():
