@@ -26,13 +26,13 @@ def load_user(id):
 def index():
     if request.method == "POST":
         file_id = request.form.get("file_id")
-        if file_id:
-            files = Files.query.all()
-
+        file = Files.query.filter_by(id=file_id).first()
+        if file:
             return send_file(
-                io.BytesIO(files[int(file_id)].file_data),
+                io.BytesIO(file.file_data),
                 mimetype='application/pdf'
             )
+
         return redirect(url_for("views.index"))
     
     return render_template("index.html", name=current_user.name, files=get_filenames(current_user))
