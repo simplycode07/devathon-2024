@@ -10,5 +10,6 @@ $ python main.py
 ### Demo Video
 
 
-https://github.com/simplycode07/devathon-2024/assets/72332741/d84473a8-d3e7-4a45-838d-5994019079da
+
+https://github.com/simplycode07/devathon-2024/assets/72332741/22158ce5-ca57-46eb-8e06-178838d2bf1a
 
